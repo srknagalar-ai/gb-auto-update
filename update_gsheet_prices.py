@@ -8,13 +8,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 from playwright.sync_api import sync_playwright
 
-SHEET_NAME = "all_in_one_trade_corrected"
 WORKSHEET_NAME = "ALL-IN-ONE"
-
-BUY_CELL = "F4"
-SELL_CELL = "F5"
-TIME_CELL = "F6"
-
+BUY_CELL = "B2"
+SELL_CELL = "B3"
+TIME_CELL = "B4"
 URL = "https://www.enucuzgb.com/rise-online-mobile/gb?d=1"
 
 
@@ -34,10 +31,9 @@ def fetch_prices():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-
         try:
-            page.goto(URL, timeout=60000)
-            page.wait_for_timeout(3000)
+            page.goto(URL, wait_until="networkidle", timeout=60000)
+            page.wait_for_timeout(5000)
 
             sell_values = page.locator(".highlight-min").all_inner_texts()
             buy_values = page.locator(".highlight-max").all_inner_texts()
@@ -46,16 +42,14 @@ def fetch_prices():
             buy_numbers = text_to_numbers(buy_values)
 
             if not sell_numbers:
-                raise RuntimeError(f"GB satış bulunamadı | {sell_values}")
-
+                raise RuntimeError(f"GB satış bulunamadı | sell_values={sell_values}")
             if not buy_numbers:
-                raise RuntimeError(f"GB alış bulunamadı | {buy_values}")
+                raise RuntimeError(f"GB alış bulunamadı | buy_values={buy_values}")
 
             sell_price = min(sell_numbers)
-            buy_price = min(buy_numbers)
+            buy_price = max(buy_numbers)
 
             return buy_price, sell_price
-
         finally:
             browser.close()
 
