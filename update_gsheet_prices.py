@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+import os
+import json
 from datetime import datetime
 
 import gspread
 from google.oauth2.service_account import Credentials
 from playwright.sync_api import sync_playwright
 
-SPREADSHEET_ID = "1ZxLqP19OUmZalIvhQpV7jiA_uJQg-bzxHTDxp3--z7I"
+SHEET_NAME = "all_in_one_trade_corrected"
 WORKSHEET_NAME = "ALL-IN-ONE"
-CREDENTIALS_FILE = "C:/Users/Serkan/Desktop/credentials.json"
-URL = "https://www.enucuzgb.com/rise-online-mobile/gb?d=1"
 
-BUY_CELL = "B2"
-SELL_CELL = "B3"
-TIME_CELL = "B4"
+BUY_CELL = "F4"
+SELL_CELL = "F5"
+TIME_CELL = "F6"
+
+URL = "https://www.enucuzgb.com/rise-online-mobile/gb?d=1"
 
 
 def text_to_numbers(values):
@@ -30,11 +32,12 @@ def text_to_numbers(values):
 
 def fetch_prices():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
+
         try:
-            page.goto(URL, wait_until="networkidle", timeout=60000)
-            page.wait_for_timeout(5000)
+            page.goto(URL, timeout=60000)
+            page.wait_for_timeout(3000)
 
             sell_values = page.locator(".highlight-min").all_inner_texts()
             buy_values = page.locator(".highlight-max").all_inner_texts()
@@ -43,24 +46,30 @@ def fetch_prices():
             buy_numbers = text_to_numbers(buy_values)
 
             if not sell_numbers:
-                raise RuntimeError(f"GB satış bulunamadı | sell_values={sell_values}")
+                raise RuntimeError(f"GB satış bulunamadı | {sell_values}")
+
             if not buy_numbers:
-                raise RuntimeError(f"GB alış bulunamadı | buy_values={buy_values}")
+                raise RuntimeError(f"GB alış bulunamadı | {buy_values}")
 
             sell_price = min(sell_numbers)
-            buy_price = max(buy_numbers)
+            buy_price = min(buy_numbers)
 
             return buy_price, sell_price
+
         finally:
             browser.close()
 
 
 def update_google_sheet(buy_price, sell_price):
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=scopes)
+
+    creds_json = os.environ["GOOGLE_CREDS"]
+    creds_dict = json.loads(creds_json)
+
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     client = gspread.authorize(creds)
 
-    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    spreadsheet = client.open_by_key(os.environ["SPREADSHEET_ID"])
     worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 
     worksheet.update_acell(BUY_CELL, buy_price)
@@ -71,7 +80,7 @@ def update_google_sheet(buy_price, sell_price):
 def main():
     buy_price, sell_price = fetch_prices()
     update_google_sheet(buy_price, sell_price)
-    print(f"Tamamlandı | GB Alış: {buy_price} | GB Satış: {sell_price}")
+    print(f"Tamamlandı | Alış: {buy_price} | Satış: {sell_price}")
 
 
 if __name__ == "__main__":
