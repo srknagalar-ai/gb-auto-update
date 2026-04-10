@@ -28,30 +28,38 @@ def text_to_numbers(values):
 
 
 def fetch_prices():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            page.goto(URL, wait_until="networkidle", timeout=60000)
-            page.wait_for_timeout(5000)
+    last_error = None
 
-            sell_values = page.locator(".highlight-min").all_inner_texts()
-            buy_values = page.locator(".highlight-max").all_inner_texts()
+    for _ in range(3):
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            try:
+                page.goto(URL, wait_until="domcontentloaded", timeout=90000)
+                page.wait_for_timeout(8000)
 
-            sell_numbers = text_to_numbers(sell_values)
-            buy_numbers = text_to_numbers(buy_values)
+                sell_values = page.locator(".highlight-min").all_inner_texts()
+                buy_values = page.locator(".highlight-max").all_inner_texts()
 
-            if not sell_numbers:
-                raise RuntimeError(f"GB satış bulunamadı | sell_values={sell_values}")
-            if not buy_numbers:
-                raise RuntimeError(f"GB alış bulunamadı | buy_values={buy_values}")
+                sell_numbers = text_to_numbers(sell_values)
+                buy_numbers = text_to_numbers(buy_values)
 
-            sell_price = min(sell_numbers)
-            buy_price = max(buy_numbers)
+                if not sell_numbers:
+                    raise RuntimeError(f"GB satış bulunamadı | sell_values={sell_values}")
+                if not buy_numbers:
+                    raise RuntimeError(f"GB alış bulunamadı | buy_values={buy_values}")
 
-            return buy_price, sell_price
-        finally:
-            browser.close()
+                sell_price = min(sell_numbers)
+                buy_price = max(buy_numbers)
+
+                return buy_price, sell_price
+
+            except Exception as exc:
+                last_error = exc
+            finally:
+                browser.close()
+
+    raise RuntimeError(f"Fiyat çekilemedi: {last_error}")
 
 
 def update_google_sheet(buy_price, sell_price):
