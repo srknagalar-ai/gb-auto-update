@@ -1,26 +1,31 @@
 name: Update GB Prices
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
+
+  schedule:
+    - cron: "*/5 * * * *"   # her 5 dakika
 
 jobs:
   run-update:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Repo çek
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Python kur
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - run: |
+      - name: Kütüphaneler
+        run: |
           pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+          playwright install chromium
 
-      - run: xvfb-run -a python update_gsheet_prices.py
+      - name: Script çalıştır
         env:
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: xvfb-run -a python update_gsheet_prices.py
