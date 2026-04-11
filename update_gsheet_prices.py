@@ -92,9 +92,10 @@ def update_google_sheet(buy_price, sell_price):
     spreadsheet = client.open_by_key(os.environ["SPREADSHEET_ID"])
     worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 
-    worksheet.update_acell(BUY_CELL, buy_price)
-    worksheet.update_acell(SELL_CELL, sell_price)
-    worksheet.update_acell(TIME_CELL, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+worksheet.update_acell(
+    TIME_CELL,
+    (datetime.utcnow() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S"),
+)
 
 
 def main():
