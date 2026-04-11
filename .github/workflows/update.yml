@@ -3,7 +3,7 @@ name: Update GB Prices
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/15 * * * *"
 
 concurrency:
   group: gb-update
