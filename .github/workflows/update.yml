@@ -5,6 +5,9 @@ on:
 
   schedule:
     - cron: "*/10 * * * *"
+    concurrency:
+  group: gb-update
+  cancel-in-progress: true
 
 jobs:
   run-update:
