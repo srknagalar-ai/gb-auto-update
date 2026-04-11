@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -22,7 +22,7 @@ def text_to_numbers(values):
             n = float(v.strip().replace(",", "."))
             if n > 0:
                 nums.append(n)
-        except Exception:
+        except:
             pass
     return nums
 
@@ -40,13 +40,13 @@ def fetch_prices():
                     "--disable-dev-shm-usage",
                 ],
             )
+
             page = browser.new_page(
                 user_agent=(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/123.0.0.0 Safari/537.36"
-                ),
-                viewport={"width": 1440, "height": 1200},
+                )
             )
 
             try:
@@ -72,8 +72,8 @@ def fetch_prices():
 
                 return buy_price, sell_price
 
-            except Exception as exc:
-                last_error = exc
+            except Exception as e:
+                last_error = e
             finally:
                 browser.close()
 
@@ -92,10 +92,12 @@ def update_google_sheet(buy_price, sell_price):
     spreadsheet = client.open_by_key(os.environ["SPREADSHEET_ID"])
     worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 
-worksheet.update_acell(
-    TIME_CELL,
-    (datetime.utcnow() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S"),
-)
+    worksheet.update_acell(BUY_CELL, buy_price)
+    worksheet.update_acell(SELL_CELL, sell_price)
+
+    # ✅ TÜRKİYE SAATİ
+    now_tr = datetime.utcnow() + timedelta(hours=3)
+    worksheet.update_acell(TIME_CELL, now_tr.strftime("%Y-%m-%d %H:%M:%S"))
 
 
 def main():
