@@ -5,7 +5,8 @@ on:
 
   schedule:
     - cron: "*/10 * * * *"
-    concurrency:
+
+concurrency:
   group: gb-update
   cancel-in-progress: true
 
