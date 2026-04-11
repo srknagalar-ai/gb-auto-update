@@ -32,11 +32,29 @@ def fetch_prices():
 
     for _ in range(3):
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+            browser = p.chromium.launch(
+                headless=False,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ],
+            )
+            page = browser.new_page(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/123.0.0.0 Safari/537.36"
+                ),
+                viewport={"width": 1440, "height": 1200},
+            )
+
             try:
                 page.goto(URL, wait_until="domcontentloaded", timeout=90000)
-                page.wait_for_timeout(8000)
+                page.wait_for_timeout(10000)
+
+                page.wait_for_selector(".highlight-min", timeout=30000)
+                page.wait_for_selector(".highlight-max", timeout=30000)
 
                 sell_values = page.locator(".highlight-min").all_inner_texts()
                 buy_values = page.locator(".highlight-max").all_inner_texts()
